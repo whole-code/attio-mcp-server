@@ -8,6 +8,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -22,6 +23,8 @@ import axios, { type AxiosRequestConfig, type AxiosError } from 'axios';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import { ZodError, z } from 'zod';
 import { transformToolName } from './tool-name-transformer.js';
+
+export const attioTokenStore = new AsyncLocalStorage<string>();
 
 /**
  * Type definition for JSON objects
@@ -50,7 +53,7 @@ export const SERVER_VERSION = '1.0.0';
 export const API_BASE_URL = 'https://api.attio.com';
 
 /**
- * MCP Server instance
+ * MCP Server instance (used for stdio mode)
  */
 const server = new Server(
   { name: SERVER_NAME, version: SERVER_VERSION },
@@ -6625,26 +6628,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       inputSchema: def.inputSchema,
     };
   });
-
+  
   // Sort tools by method order within categories
   toolsForClient.sort((a, b) => {
     // Extract category from description
     const categoryA = a.description?.match(/^\[([^\]]+)\]/)?.[1] || 'Other';
     const categoryB = b.description?.match(/^\[([^\]]+)\]/)?.[1] || 'Other';
-
+    
     // First sort by category
     if (categoryA !== categoryB) {
       return categoryA.localeCompare(categoryB);
     }
-
+    
     // Within the same category, sort by method order
     const methodA = a.name.split('_')[0];
     const methodB = b.name.split('_')[0];
-
+    
     const methodOrder = ['list', 'get', 'create', 'update', 'delete', 'query'];
     const orderA = methodOrder.indexOf(methodA);
     const orderB = methodOrder.indexOf(methodB);
-
+    
     if (orderA !== -1 && orderB !== -1) {
       if (orderA !== orderB) {
         return orderA - orderB;
@@ -6654,10 +6657,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     } else if (orderB !== -1) {
       return 1;
     }
-
+    
     return a.name.localeCompare(b.name);
   });
-
+  
   return { tools: toolsForClient };
 });
 
@@ -6779,8 +6782,8 @@ async function executeApiTool(
 
         // OAuth2 security
         if (scheme.type === 'oauth2') {
-          // Check for Attio access token
-          if (process.env.ATTIO_ACCESS_TOKEN) {
+          // Check for Attio access token (AsyncLocalStorage for HTTP mode, env for stdio)
+          if (attioTokenStore.getStore() || process.env.ATTIO_ACCESS_TOKEN) {
             return true;
           }
 
@@ -6865,8 +6868,8 @@ async function executeApiTool(
         }
         // OAuth2 security
         else if (scheme?.type === 'oauth2') {
-          // Use Attio workspace access token
-          let token = process.env.ATTIO_ACCESS_TOKEN;
+          // Use Attio workspace access token (AsyncLocalStorage for HTTP mode, env for stdio)
+          let token = attioTokenStore.getStore() || process.env.ATTIO_ACCESS_TOKEN;
 
           // Apply token if available
           if (token) {
@@ -6997,10 +7000,9 @@ async function executeApiTool(
 }
 
 /**
- * Main function to start the server
+ * Main function to start the stdio server
  */
-async function main() {
-  // Set up stdio transport
+export async function main() {
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
@@ -7013,23 +7015,7 @@ async function main() {
   }
 }
 
-/**
- * Cleanup function for graceful shutdown
- */
-async function cleanup() {
-  console.error('Shutting down MCP server...');
-  process.exit(0);
-}
-
-// Register signal handlers
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
-
-// Start the server
-main().catch((error) => {
-  console.error('Fatal error in main execution:', error);
-  process.exit(1);
-});
+export { toolDefinitionMap, securitySchemes, executeApiTool };
 
 /**
  * Formats API errors for better readability

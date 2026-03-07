@@ -2,64 +2,102 @@
 
 A high-performance Model Context Protocol (MCP) server that provides seamless access to the Attio API, enabling AI assistants like Claude and Cursor to interact with your Attio workspace through human-readable tools.
 
+Supports both **remote HTTP mode** (cloud-hosted, multi-user) and **local stdio mode**.
+
 ## Features
 
+- **🌐 Remote HTTP Mode**: Host as a cloud service — each user provides their own Attio API key via headers
 - **🏷️ Human-Readable Tool Names**: Automatically transforms technical API names (like `getv2objects`) into clear, categorized names (like `list_objects`)
 - **📊 Full API Coverage**: Access to objects, records, attributes, lists, tasks, notes, and more
 - **📁 Organized by Category**: Tools are grouped into logical categories for easy navigation
 - **🤖 AI Assistant Ready**: Works seamlessly with Claude Desktop and Cursor
 - **⚡ High Performance**: Built with Bun for fast execution and native TypeScript support
-- **🔧 Easy Installation**: Automated setup scripts with intelligent configuration detection
 
+## Remote HTTP Mode (Cloud-Hosted)
 
-https://github.com/user-attachments/assets/c3a5fe4c-e97e-4bcb-8140-a88c712a35cd
+Host the server on any platform (DigitalOcean, Railway, Fly.io, etc.) and connect from anywhere. Each user provides their own Attio API key via request headers.
 
+### Deploy
 
-## Quick Start
+```bash
+bun install
+bun run build
+bun run start
+# Server runs at http://localhost:3000/mcp
+```
 
-1. **Prerequisites:**
+**DigitalOcean App Platform** — connect the repo, set build command to `bun run build` and run command to `bun run start`. The server reads `PORT` from the environment automatically.
+
+### Connect from Cursor / Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "attio": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://your-app.ondigitalocean.app/mcp",
+        "--header",
+        "x-attio-token: YOUR_ATTIO_API_KEY"
+      ]
+    }
+  }
+}
+```
+
+Get your Attio API key from: https://app.attio.com/settings/api
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/mcp` | POST, GET, DELETE | MCP Streamable HTTP transport |
+| `/health` | GET | Health check (returns server status) |
+
+### Authentication
+
+Pass your Attio API key in either header:
+- `x-attio-token: YOUR_KEY`
+- `Authorization: Bearer YOUR_KEY`
+
+The key is required on the initial `initialize` request and is stored for the duration of the session.
+
+## Local stdio Mode
+
+For local-only use (single user, token in `.env`).
+
+### Quick Start
+
+1. **Install Bun:**
    ```bash
-   # Install Bun (if not already installed)
    curl -fsSL https://bun.sh/install | bash
    ```
 
-2. **Install and configure:**
+2. **Install and build:**
    ```bash
-   ./install.sh
+   bun install
+   bun run build
    ```
 
 3. **Add your Attio access token to `.env`:**
    ```
    ATTIO_ACCESS_TOKEN=your_token_here
    ```
-   
-   Get your token from: https://app.attio.com/settings/api
 
-4. **Restart Claude Desktop or Cursor**
+4. **Configure Claude Desktop / Cursor** to use the stdio server:
+   ```json
+   {
+     "mcpServers": {
+       "attio": {
+         "command": "node",
+         "args": ["/path/to/attio-mcp-server/build/stdio.js"]
+       }
+     }
+   }
+   ```
 
-## Manual Installation
-
-### For Claude Desktop
-
-```bash
-./install-claude.sh
-```
-
-This will automatically:
-- Add the server to Claude's configuration
-- Configure authentication with your access token
-- Create a backup of existing configuration
-
-### For Cursor
-
-```bash
-./install-cursor.sh
-```
-
-This will automatically:
-- Add the server to Cursor's settings
-- Configure authentication with your access token
-- Create a backup of existing settings
+Or use the install scripts: `./install-claude.sh` or `./install-cursor.sh`
 
 ## Available Tools
 
