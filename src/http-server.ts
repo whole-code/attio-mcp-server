@@ -112,6 +112,13 @@ function extractAttioToken(req: IncomingMessage): string | undefined {
   const auth = req.headers['authorization'];
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
 
+  // Check URL query parameter
+  if (req.url) {
+    const url = new URL(req.url, 'http://localhost');
+    const tokenParam = url.searchParams.get('x-attio-token') || url.searchParams.get('attio_token');
+    if (tokenParam) return tokenParam;
+  }
+
   return undefined;
 }
 
@@ -136,12 +143,14 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === '/health') {
+  const pathname = new URL(req.url || '/', 'http://localhost').pathname;
+
+  if (pathname === '/health') {
     sendJson(res, 200, { status: 'ok', server: SERVER_NAME, version: SERVER_VERSION });
     return;
   }
 
-  if (req.url !== '/mcp') {
+  if (pathname !== '/mcp') {
     sendJson(res, 404, { error: 'Not found. MCP endpoint is at /mcp' });
     return;
   }
@@ -164,7 +173,7 @@ const httpServer = createServer(async (req, res) => {
             jsonrpc: '2.0',
             error: {
               code: -32001,
-              message: 'Missing Attio API key. Provide via x-attio-token header or Authorization: Bearer <token>',
+              message: 'Missing Attio API key. Provide via x-attio-token header, Authorization: Bearer <token>, or ?attio_token=<token> query parameter',
             },
             id: null,
           });
