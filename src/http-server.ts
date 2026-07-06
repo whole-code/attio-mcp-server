@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -17,9 +17,9 @@ import {
   SERVER_NAME,
   SERVER_VERSION,
   attioTokenStore,
-  toolDefinitionMap,
-  securitySchemes,
   executeApiTool,
+  securitySchemes,
+  toolDefinitionMap,
 } from './index.js';
 import { transformToolName } from './tool-name-transformer.js';
 
@@ -93,7 +93,9 @@ function createAttioServer(attioToken: string): Server {
 function parseBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('data', (chunk: Buffer) => {
+      body += chunk.toString();
+    });
     req.on('end', () => {
       try {
         resolve(body ? JSON.parse(body) : undefined);
@@ -125,7 +127,10 @@ function extractAttioToken(req: IncomingMessage): string | undefined {
 function setCorsHeaders(res: ServerResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-attio-token, Authorization, mcp-session-id');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, x-attio-token, Authorization, mcp-session-id'
+  );
   res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
 }
 
@@ -173,7 +178,8 @@ const httpServer = createServer(async (req, res) => {
             jsonrpc: '2.0',
             error: {
               code: -32001,
-              message: 'Missing Attio API key. Provide via x-attio-token header, Authorization: Bearer <token>, or ?attio_token=<token> query parameter',
+              message:
+                'Missing Attio API key. Provide via x-attio-token header, Authorization: Bearer <token>, or ?attio_token=<token> query parameter',
             },
             id: null,
           });

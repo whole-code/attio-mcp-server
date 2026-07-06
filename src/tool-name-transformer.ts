@@ -41,6 +41,71 @@ function getSingular(resourceName: string): string {
 }
 
 /**
+ * Explicit name overrides.
+ *
+ * The generic transformer below maps every PUT/PATCH to "Update", which made the
+ * three record-update variants (PUT collection = assert, PUT by id = overwrite
+ * multiselect values, PATCH by id = append multiselect values) all collide on
+ * `update_record` — and likewise for list entries. MCP clients (e.g. n8n's MCP
+ * trigger) reject duplicate tool names, so these six get distinct names here.
+ *
+ * Newer API surfaces (meetings, call recordings, files, views, search, SQL)
+ * also get explicit names since their paths don't fit the legacy patterns.
+ */
+const explicitTransformations: Record<string, { humanReadableName: string; category: string }> = {
+  // Record update variants
+  putv2objectsrecords: { humanReadableName: 'assert_record', category: 'Records' },
+  putv2objectsrecordsbyrecordid: { humanReadableName: 'overwrite_record', category: 'Records' },
+  patchv2objectsrecordsbyrecordid: { humanReadableName: 'update_record', category: 'Records' },
+  // List entry update variants
+  putv2listsentries: { humanReadableName: 'assert_list_entry', category: 'List Entries' },
+  putv2listsentriesbyentryid: {
+    humanReadableName: 'overwrite_list_entry',
+    category: 'List Entries',
+  },
+  patchv2listsentriesbyentryid: {
+    humanReadableName: 'update_list_entry',
+    category: 'List Entries',
+  },
+  // Meetings & call recordings
+  getv2meetings: { humanReadableName: 'list_meetings', category: 'Meetings' },
+  getv2meetingsbymeetingid: { humanReadableName: 'get_meeting', category: 'Meetings' },
+  postv2meetings: { humanReadableName: 'create_meeting', category: 'Meetings' },
+  getv2meetingscallrecordings: {
+    humanReadableName: 'list_call_recordings',
+    category: 'Meetings',
+  },
+  postv2meetingscallrecordings: {
+    humanReadableName: 'create_call_recording',
+    category: 'Meetings',
+  },
+  getv2meetingscallrecordingsbycallrecordingid: {
+    humanReadableName: 'get_call_recording',
+    category: 'Meetings',
+  },
+  deletev2meetingscallrecordingsbycallrecordingid: {
+    humanReadableName: 'delete_call_recording',
+    category: 'Meetings',
+  },
+  getv2meetingscallrecordingstranscript: {
+    humanReadableName: 'get_call_transcript',
+    category: 'Meetings',
+  },
+  // Files
+  getv2files: { humanReadableName: 'list_files', category: 'Files' },
+  postv2files: { humanReadableName: 'create_file', category: 'Files' },
+  getv2filesbyfileid: { humanReadableName: 'get_file', category: 'Files' },
+  getv2filesdownload: { humanReadableName: 'download_file', category: 'Files' },
+  deletev2filesbyfileid: { humanReadableName: 'delete_file', category: 'Files' },
+  // Views
+  getv2listsviews: { humanReadableName: 'list_list_views', category: 'Lists' },
+  getv2objectsviews: { humanReadableName: 'list_object_views', category: 'Objects' },
+  // Search & SQL
+  postv2objectsrecordssearch: { humanReadableName: 'search_records', category: 'Records' },
+  postv2sql: { humanReadableName: 'query_sql', category: 'Reporting' },
+};
+
+/**
  * Transforms a tool name from OpenAPI format to human-readable format
  * Examples:
  * - getv2objects -> List Objects
@@ -49,6 +114,11 @@ function getSingular(resourceName: string): string {
  * - deletev2objectsrecordsbyrecordid -> Delete Record
  */
 export function transformToolName(originalName: string): ToolTransformation {
+  const explicit = explicitTransformations[originalName];
+  if (explicit) {
+    return { originalName, ...explicit };
+  }
+
   // Extract the HTTP method and resource parts
   const methodMatch = originalName.match(/^(get|post|put|patch|delete)v2(.+)$/);
   if (!methodMatch) {

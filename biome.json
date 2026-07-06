@@ -3,7 +3,14 @@
   "vcs": { "enabled": false, "clientKind": "git", "useIgnoreFile": false },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["**/*.test.*", "**/__tests__/**", "test-*.js", "test-*.ts", "docs/spec/attio.json"],
+    "ignore": [
+      "**/*.test.*",
+      "**/__tests__/**",
+      "test-*.js",
+      "test-*.ts",
+      "docs/spec/attio.json",
+      "build/**"
+    ],
     "maxSize": 2097152
   },
   "formatter": {

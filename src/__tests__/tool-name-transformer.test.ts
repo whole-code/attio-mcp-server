@@ -40,17 +40,44 @@ describe('Tool Name Transformer', () => {
         category: 'Records',
       });
 
-      expect(transformToolName('putv2objectsrecords')).toEqual({
-        originalName: 'putv2objectsrecords',
-        humanReadableName: 'update_record',
-        category: 'Records',
-      });
-
       expect(transformToolName('deletev2objectsrecordsbyrecordid')).toEqual({
         originalName: 'deletev2objectsrecordsbyrecordid',
         humanReadableName: 'delete_record',
         category: 'Records',
       });
+    });
+
+    test('disambiguates record and list entry update variants', () => {
+      // PUT collection = assert, PUT by id = overwrite, PATCH by id = update.
+      // These previously all collided on update_record / update_list_entry,
+      // which breaks MCP clients that reject duplicate tool names.
+      expect(transformToolName('putv2objectsrecords').humanReadableName).toBe('assert_record');
+      expect(transformToolName('putv2objectsrecordsbyrecordid').humanReadableName).toBe(
+        'overwrite_record'
+      );
+      expect(transformToolName('patchv2objectsrecordsbyrecordid').humanReadableName).toBe(
+        'update_record'
+      );
+      expect(transformToolName('putv2listsentries').humanReadableName).toBe('assert_list_entry');
+      expect(transformToolName('putv2listsentriesbyentryid').humanReadableName).toBe(
+        'overwrite_list_entry'
+      );
+      expect(transformToolName('patchv2listsentriesbyentryid').humanReadableName).toBe(
+        'update_list_entry'
+      );
+    });
+
+    test('names new API surfaces (meetings, files, views, search, sql)', () => {
+      expect(transformToolName('getv2meetings').humanReadableName).toBe('list_meetings');
+      expect(transformToolName('getv2meetingscallrecordingstranscript').humanReadableName).toBe(
+        'get_call_transcript'
+      );
+      expect(transformToolName('getv2filesdownload').humanReadableName).toBe('download_file');
+      expect(transformToolName('getv2listsviews').humanReadableName).toBe('list_list_views');
+      expect(transformToolName('postv2objectsrecordssearch').humanReadableName).toBe(
+        'search_records'
+      );
+      expect(transformToolName('postv2sql').humanReadableName).toBe('query_sql');
     });
 
     test('transforms attribute operations correctly', () => {

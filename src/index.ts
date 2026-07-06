@@ -6569,6 +6569,1184 @@ Required scopes: \`webhook:read-write\`.`,
       securityRequirements: [{ oauth2: [] }],
     },
   ],
+  [
+    'getv2meetings',
+    {
+      name: 'getv2meetings',
+      description:
+        'Lists all meetings in the workspace using a deterministic sort order.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `meeting:read`, `record_permission:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 200,
+            default: 50,
+            description:
+              'The maximum number of meetings to return. Must be between 1 and 200. Defaults to 50.',
+          },
+          cursor: {
+            type: 'string',
+            description:
+              'A pagination cursor used to fetch the next page of meetings. Responses with more meetings will include a cursor for you to use here. If not provided, the first page will be returned.',
+          },
+          linked_object: {
+            type: 'string',
+            minLength: 1,
+            description:
+              'The object to filter meetings by. Must be a valid object slug or ID. If provided, linked_record_id must also be provided.',
+          },
+          linked_record_id: {
+            type: 'string',
+            format: 'uuid',
+            description:
+              'Used to filter meetings to only those values that include a specific linked record. Must be a valid record ID. If provided, linked_object must also be provided.',
+          },
+          participants: {
+            type: 'string',
+            default: '',
+            description:
+              'A comma-separated list of emails to filter meetings by. If provided, meetings will be filtered to only include meetings that include at least one of the provided emails as participants.',
+          },
+          sort: {
+            type: 'string',
+            enum: ['start_asc', 'start_desc'],
+            default: 'start_asc',
+            description: 'The order in which to sort the meetings. Defaults to start_asc.',
+          },
+          ends_from: {
+            type: ['string', 'null'],
+            description:
+              'Use `ends_from` to filter meetings to only those that end after the specified timestamp. `ends_from` is inclusive, meaning that meetings that end at the exact timestamp will be included in results. When evaluating all-day meetings, we filter results from the perspective of a specific timezone (see `timezone` for more information).',
+          },
+          starts_before: {
+            type: ['string', 'null'],
+            description:
+              'Use `starts_before` to filter meetings to only those that start before the specified timestamp. `starts_before` is exclusive, meaning that meetings that start at the exact timestamp will not be included in results. When evaluating all-day meetings, we filter results from the perspective of a specific timezone (see `timezone` for more information).',
+          },
+          timezone: {
+            type: 'string',
+            default: 'UTC',
+            description:
+              'The timezone to use when filtering meetings using `ends_from` and `starts_before`. Defaults to UTC. This property has no effect for non-all-day meetings.',
+          },
+        },
+      },
+      method: 'get',
+      pathTemplate: '/v2/meetings',
+      executionParameters: [
+        {
+          name: 'limit',
+          in: 'query',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+        {
+          name: 'linked_object',
+          in: 'query',
+        },
+        {
+          name: 'linked_record_id',
+          in: 'query',
+        },
+        {
+          name: 'participants',
+          in: 'query',
+        },
+        {
+          name: 'sort',
+          in: 'query',
+        },
+        {
+          name: 'ends_from',
+          in: 'query',
+        },
+        {
+          name: 'starts_before',
+          in: 'query',
+        },
+        {
+          name: 'timezone',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2meetingsbymeetingid',
+    {
+      name: 'getv2meetingsbymeetingid',
+      description:
+        'Get a single meeting by ID.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `meeting:read`, `record_permission:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'A UUID which identifies the meeting.',
+          },
+        },
+        required: ['meeting_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/meetings/{meeting_id}',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'postv2meetings',
+    {
+      name: 'postv2meetings',
+      description:
+        "Finds an existing meeting or creates a new one if it doesn't yet exist. [Please see here](/rest-api/guides/syncing-meetings) for a full guide on syncing meetings to Attio.\n\nThis endpoint is in alpha and may be subject to breaking changes as we gather feedback.\n\nRequired scopes: `meeting:read-write`, `record_permission:read`.",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          requestBody: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    description: 'The title of the meeting.',
+                  },
+                  description: {
+                    type: 'string',
+                    description: 'The description of the meeting.',
+                  },
+                  start: {
+                    anyOf: [
+                      {
+                        type: 'object',
+                        properties: {
+                          datetime: {
+                            type: 'string',
+                            format: 'date-time',
+                            description:
+                              'An ISO 8601 datetime indicating when a non-all day meeting starts.',
+                          },
+                          timezone: {
+                            type: ['string', 'null'],
+                            description:
+                              'The IANA timezone the meeting starts in. If a datetime value is provided without an offset, this timezone will be used to convert the datetime to UTC using the timezone offset. If a datetime value is provided with an offset, this timezone will not be used to apply any additional offset to the datetime. Invalid timezones will be treated as UTC.',
+                          },
+                        },
+                        required: ['datetime'],
+                        additionalProperties: false,
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          date: {
+                            type: 'string',
+                            description:
+                              'An ISO 8601 date indicating when an all day meeting starts.',
+                          },
+                        },
+                        required: ['date'],
+                        additionalProperties: false,
+                      },
+                    ],
+                    description:
+                      'When the meeting starts. Use a datetime and optional timezone for non-all day meetings, or a date for all day meetings.',
+                  },
+                  end: {
+                    anyOf: [
+                      {
+                        type: 'object',
+                        properties: {
+                          datetime: {
+                            type: 'string',
+                            format: 'date-time',
+                            description:
+                              'An ISO 8601 datetime indicating when a non-all day meeting ends. Note that this value is exclusive, meaning that the meeting ends before the specified time, not at it. For example, a one hour meeting starting at 14:00 would end at 15:00, not 15:59:59.',
+                          },
+                          timezone: {
+                            type: ['string', 'null'],
+                            description:
+                              'The IANA timezone the meeting ends in. If a datetime value is provided without an offset, this timezone will be used to convert the datetime to UTC using the timezone offset. If a datetime value is provided with an offset, this timezone will not be used to apply any additional offset to the datetime. Invalid timezones will be treated as UTC.',
+                          },
+                        },
+                        required: ['datetime'],
+                        additionalProperties: false,
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          date: {
+                            type: 'string',
+                            description:
+                              'An ISO 8601 date indicating when an all day meeting ends. Note that dates are exclusive, meaning that the meeting ends before the specified time, not at it. For example, a one day meeting on June 3rd would end on June 4th, not June 3rd.',
+                          },
+                        },
+                        required: ['date'],
+                        additionalProperties: false,
+                      },
+                    ],
+                    description:
+                      'When the meeting ends. Use a datetime and optional timezone for non-all day meetings, or a date for all day meetings.',
+                  },
+                  is_all_day: {
+                    type: 'boolean',
+                    description:
+                      'Whether or not the meeting is an all day event. All day events may span multiple days. When true, start and end must use date format. When false, start and end must use datetime with timezone format.',
+                  },
+                  participants: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        email_address: {
+                          type: 'string',
+                          description:
+                            'The email address of the participant. New person records and companies will automatically be created based upon the email address values provided.',
+                        },
+                        is_organizer: {
+                          anyOf: [
+                            {
+                              type: 'boolean',
+                            },
+                            {
+                              type: 'string',
+                              enum: ['true'],
+                            },
+                            {
+                              type: 'string',
+                              enum: ['false'],
+                            },
+                          ],
+                          description:
+                            'Whether or not the participant is the organizer of the meeting.',
+                        },
+                        status: {
+                          type: 'string',
+                          enum: ['accepted', 'tentative', 'declined', 'pending'],
+                          description: 'The status of the individual meeting participant.',
+                        },
+                      },
+                      required: ['email_address', 'is_organizer', 'status'],
+                    },
+                  },
+                  linked_records: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        object: {
+                          type: 'string',
+                          description:
+                            'The slug or UUID of the object that the record being linked belongs to.',
+                        },
+                        record_id: {
+                          type: 'string',
+                          format: 'uuid',
+                          description: 'The UUID of the record being linked.',
+                        },
+                      },
+                      required: ['object', 'record_id'],
+                    },
+                    description:
+                      "A list of records to link to the meeting. Each record is specified by its object (slug or UUID) and record ID (UUID). Attio will automatically link the meeting participants' companies to the meeting; this behavior is asynchronous.",
+                  },
+                  external_ref: {
+                    anyOf: [
+                      {
+                        type: 'string',
+                        minLength: 1,
+                        description:
+                          'A text ID that can be used to consistently reference and de-duplicate meetings. For example, this might be the primary key of a meeting in your system, or taken from an API response from a service you are connecting to Attio. You should ensure that this ID is unique across recurring meetings and does not change over time. If you do not have an ID immediately to hand, you may generate a UUID to use as the external reference.',
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          ical_uid: {
+                            type: 'string',
+                            description: 'The ical uid of the meeting.',
+                          },
+                          provider: {
+                            type: 'string',
+                            enum: ['google', 'microsoft'],
+                            description: 'The email provider used to sync the meeting.',
+                          },
+                          original_start_time: {
+                            type: 'string',
+                            description:
+                              'The original start time of the meeting. Use a timestamp with a specified offset for all day and non-all day meetings. This property is required for recurring event exceptions and optional otherwise.',
+                          },
+                          is_recurring: {
+                            type: 'boolean',
+                            description: 'Whether or not the meeting is recurring.',
+                          },
+                        },
+                        required: ['ical_uid', 'provider', 'is_recurring'],
+                      },
+                    ],
+                    description:
+                      'A consistent external reference used to match and de-duplicate meetings. Can be either a plain string (for external system IDs) or an object with `ical_uid` and `provider`. If you are writing data into Attio which is based upon calendar events that you have synced from a Google or Microsoft calendar, you must use the iCal format to avoid creating duplicate meetings inside Attio.',
+                  },
+                },
+                required: [
+                  'title',
+                  'description',
+                  'start',
+                  'end',
+                  'is_all_day',
+                  'participants',
+                  'external_ref',
+                ],
+              },
+            },
+            required: ['data'],
+            description: 'The JSON request body.',
+          },
+        },
+        required: ['requestBody'],
+      },
+      method: 'post',
+      pathTemplate: '/v2/meetings',
+      executionParameters: [],
+      requestBodyContentType: 'application/json',
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read-write', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2meetingscallrecordings',
+    {
+      name: 'getv2meetingscallrecordings',
+      description:
+        'List all call recordings for a meeting.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `meeting:read`, `call_recording:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the meeting to list call recordings for.',
+          },
+          limit: {
+            type: 'integer',
+            description:
+              'The maximum number of results to return. Defaults to 50 with a maximum of 200.',
+          },
+          cursor: {
+            type: 'string',
+            minLength: 1,
+            description:
+              'A cursor for pagination. Use the `next_cursor` from the previous response to get the next page of results.',
+          },
+        },
+        required: ['meeting_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/meetings/{meeting_id}/call_recordings',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+        {
+          name: 'limit',
+          in: 'query',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'call_recording:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'postv2meetingscallrecordings',
+    {
+      name: 'postv2meetingscallrecordings',
+      description:
+        'Create a call recording for a meeting. This endpoint is rate limited to 1 request per second.\n\nThis endpoint is in alpha and may be subject to breaking changes as we gather feedback.\n\nRequired scopes: `meeting:read`, `call_recording:read-write`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the meeting this recording belongs to.',
+          },
+          requestBody: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                properties: {
+                  video_url: {
+                    type: 'string',
+                    format: 'uri',
+                    description:
+                      'A publicly accessible URL to a video file of the call recording. Attio will download the video from this URL asynchronously.\n\n**Requirements:**\n- **Protocol:** The URL must use the `https` protocol.\n- **File type:** The file must be a `.mp4` file.\n- **File size:** The file must not exceed 500MB in size.\n- **Accessibility:** For the request to be accepted, the URL must be publicly accessible. Attio will make a `HEAD` request to the URL to verify its accessibility and retrieve file metadata. The response to this request must include a `Content-Length` header.',
+                  },
+                },
+                required: ['video_url'],
+              },
+            },
+            required: ['data'],
+            description: 'The JSON request body.',
+          },
+        },
+        required: ['meeting_id', 'requestBody'],
+      },
+      method: 'post',
+      pathTemplate: '/v2/meetings/{meeting_id}/call_recordings',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+      ],
+      requestBodyContentType: 'application/json',
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'call_recording:read-write'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2meetingscallrecordingsbycallrecordingid',
+    {
+      name: 'getv2meetingscallrecordingsbycallrecordingid',
+      description:
+        'Get a single call recording by ID.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `meeting:read`, `call_recording:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the meeting this recording belongs to.',
+          },
+          call_recording_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the call recording to retrieve.',
+          },
+        },
+        required: ['meeting_id', 'call_recording_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/meetings/{meeting_id}/call_recordings/{call_recording_id}',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+        {
+          name: 'call_recording_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'call_recording:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'deletev2meetingscallrecordingsbycallrecordingid',
+    {
+      name: 'deletev2meetingscallrecordingsbycallrecordingid',
+      description:
+        'Deletes the specified call recording. This will remove the call recording and all associated data.\n\nThis endpoint is in alpha and may be subject to breaking changes as we gather feedback.\n\nRequired scopes: `meeting:read`, `call_recording:read-write`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the meeting this call recording belongs to.',
+          },
+          call_recording_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the call recording to delete.',
+          },
+        },
+        required: ['meeting_id', 'call_recording_id'],
+      },
+      method: 'delete',
+      pathTemplate: '/v2/meetings/{meeting_id}/call_recordings/{call_recording_id}',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+        {
+          name: 'call_recording_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'call_recording:read-write'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2meetingscallrecordingstranscript',
+    {
+      name: 'getv2meetingscallrecordingstranscript',
+      description:
+        'Get the transcript for a call recording.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `meeting:read`, `call_recording:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          meeting_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the meeting.',
+          },
+          call_recording_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The ID of the call recording to get the transcript for.',
+          },
+          cursor: {
+            type: 'string',
+            description:
+              'A cursor for pagination through transcript segments. Use the `next_cursor` from the previous response to get the next page of speech segments within this transcript.',
+          },
+        },
+        required: ['meeting_id', 'call_recording_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/meetings/{meeting_id}/call_recordings/{call_recording_id}/transcript',
+      executionParameters: [
+        {
+          name: 'meeting_id',
+          in: 'path',
+        },
+        {
+          name: 'call_recording_id',
+          in: 'path',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['meeting:read', 'call_recording:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2files',
+    {
+      name: 'getv2files',
+      description:
+        'Lists internal files, externally connected files and folders for a specific record. Use the `object` and `record_id` query parameters to specify the record. Optional query parameters may be provided to filter results by storage provider or parent folder.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `object_configuration:read`, `record_permission:read`, `file:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          object: {
+            type: 'string',
+            minLength: 1,
+            description: 'The object slug or ID.',
+          },
+          record_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'The record ID for the specific record whose files you want to list.',
+          },
+          storage_provider: {
+            type: 'string',
+            enum: ['attio', 'dropbox', 'box', 'google-drive', 'microsoft-onedrive'],
+            description: 'Filter results by storage provider.',
+          },
+          parent_folder_id: {
+            type: 'string',
+            format: 'uuid',
+            description:
+              'Filter by parent folder ID. Each file entry has provided optioanl parent_folder_id that can be used to filter results by folder. When omitted, entries at all nesting levels are returned.',
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 200,
+            default: 50,
+            description:
+              'The maximum number of files to return. Must be between 1 and 200. Defaults to 50.',
+          },
+          cursor: {
+            type: 'string',
+            description:
+              'A pagination cursor used to fetch the next page of files. Responses with more files will include a cursor for you to use here. If not provided, the first page will be returned.',
+          },
+        },
+        required: ['object', 'record_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/files',
+      executionParameters: [
+        {
+          name: 'object',
+          in: 'query',
+        },
+        {
+          name: 'record_id',
+          in: 'query',
+        },
+        {
+          name: 'storage_provider',
+          in: 'query',
+        },
+        {
+          name: 'parent_folder_id',
+          in: 'query',
+        },
+        {
+          name: 'limit',
+          in: 'query',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['object_configuration:read', 'record_permission:read', 'file:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'postv2files',
+    {
+      name: 'postv2files',
+      description:
+        'Creates a native folder entry or a connected file/folder entry on an object record.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `file:read-write`, `object_configuration:read`, `record_permission:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          requestBody: {
+            oneOf: [
+              {
+                type: 'object',
+                properties: {
+                  object: {
+                    type: 'string',
+                    minLength: 1,
+                    description: 'The object slug or ID.',
+                  },
+                  record_id: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'The ID of the record to create the file entry on.',
+                  },
+                  file_type: {
+                    type: 'string',
+                    enum: ['folder'],
+                    description: 'Creates a native Attio folder entry.',
+                  },
+                  name: {
+                    type: 'string',
+                    minLength: 1,
+                    description: 'The folder name.',
+                  },
+                  parent_folder_id: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'Optional parent folder ID. Omit to create a top-level folder.',
+                  },
+                },
+                required: ['object', 'record_id', 'file_type', 'name'],
+                additionalProperties: false,
+                title: 'Folder',
+              },
+              {
+                type: 'object',
+                properties: {
+                  object: {
+                    type: 'string',
+                    minLength: 1,
+                    description: 'The object slug or ID.',
+                  },
+                  record_id: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'The ID of the record to create the file entry on.',
+                  },
+                  storage_provider: {
+                    type: 'string',
+                    enum: ['dropbox', 'box', 'google-drive', 'microsoft-onedrive'],
+                    description: 'The external storage provider.',
+                  },
+                  external_provider_file_id: {
+                    type: 'string',
+                    description: 'The ID of the file or folder in the external storage provider.',
+                  },
+                  microsoft_drive_id: {
+                    type: ['string', 'null'],
+                    description:
+                      'Microsoft drive ID. Only used when `storage_provider` is `microsoft-onedrive`.',
+                  },
+                  file_type: {
+                    type: 'string',
+                    enum: ['connected-folder'],
+                    description: 'Creates a connected folder entry.',
+                  },
+                },
+                required: [
+                  'object',
+                  'record_id',
+                  'storage_provider',
+                  'external_provider_file_id',
+                  'file_type',
+                ],
+                additionalProperties: false,
+                title: 'Connected Folder',
+              },
+              {
+                type: 'object',
+                properties: {
+                  object: {
+                    type: 'string',
+                    minLength: 1,
+                    description: 'The object slug or ID.',
+                  },
+                  record_id: {
+                    type: 'string',
+                    format: 'uuid',
+                    description: 'The ID of the record to create the file entry on.',
+                  },
+                  storage_provider: {
+                    type: 'string',
+                    enum: ['dropbox', 'box', 'google-drive', 'microsoft-onedrive'],
+                    description: 'The external storage provider.',
+                  },
+                  external_provider_file_id: {
+                    type: 'string',
+                    description: 'The ID of the file or folder in the external storage provider.',
+                  },
+                  microsoft_drive_id: {
+                    type: ['string', 'null'],
+                    description:
+                      'Microsoft drive ID. Only used when `storage_provider` is `microsoft-onedrive`.',
+                  },
+                  file_type: {
+                    type: 'string',
+                    enum: ['connected-file'],
+                    description: 'Creates a connected file entry.',
+                  },
+                },
+                required: [
+                  'object',
+                  'record_id',
+                  'storage_provider',
+                  'external_provider_file_id',
+                  'file_type',
+                ],
+                additionalProperties: false,
+                title: 'Connected File',
+              },
+            ],
+            description: 'The JSON request body.',
+          },
+        },
+        required: ['requestBody'],
+      },
+      method: 'post',
+      pathTemplate: '/v2/files',
+      executionParameters: [],
+      requestBodyContentType: 'application/json',
+      securityRequirements: [
+        {
+          oauth2: ['file:read-write', 'object_configuration:read', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2filesbyfileid',
+    {
+      name: 'getv2filesbyfileid',
+      description:
+        'Get a single file entry by ID.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `file:read`, `object_configuration:read`, `record_permission:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'A UUID which identifies the file entry.',
+          },
+        },
+        required: ['file_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/files/{file_id}',
+      executionParameters: [
+        {
+          name: 'file_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['file:read', 'object_configuration:read', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2filesdownload',
+    {
+      name: 'getv2filesdownload',
+      description:
+        'Downloads a file by redirecting to a signed URL.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `object_configuration:read`, `record_permission:read`, `file:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file_id: {
+            type: 'string',
+            format: 'uuid',
+          },
+        },
+        required: ['file_id'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/files/{file_id}/download',
+      executionParameters: [
+        {
+          name: 'file_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['object_configuration:read', 'record_permission:read', 'file:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'deletev2filesbyfileid',
+    {
+      name: 'deletev2filesbyfileid',
+      description:
+        'Delete a single file by ID. Deleting a folder will delete all of its descendants.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `file:read-write`, `object_configuration:read`, `record_permission:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          file_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'A UUID which identifies the file to delete.',
+          },
+        },
+        required: ['file_id'],
+      },
+      method: 'delete',
+      pathTemplate: '/v2/files/{file_id}',
+      executionParameters: [
+        {
+          name: 'file_id',
+          in: 'path',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['file:read-write', 'object_configuration:read', 'record_permission:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2listsviews',
+    {
+      name: 'getv2listsviews',
+      description:
+        'Lists saved views for a list. Results are ordered by view ID (`id.view_id` ascending).\n\nRequired scopes: `list_configuration:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          list: {
+            type: 'string',
+            description: 'A UUID or slug to identify the list.',
+          },
+          show_archived: {
+            type: 'boolean',
+            description:
+              '`true` to include archived views. See our [archiving guide](/docs/archiving-vs-deleting) for more information on archiving.',
+            default: false,
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 1000,
+            default: 500,
+            description:
+              'The maximum number of views to return. Must be between 1 and 1000. Defaults to 500.',
+          },
+          cursor: {
+            type: 'string',
+            description:
+              "A pagination cursor from a previous response's `pagination.next_cursor`. Omit for the first page.",
+          },
+        },
+        required: ['list'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/lists/{list}/views',
+      executionParameters: [
+        {
+          name: 'list',
+          in: 'path',
+        },
+        {
+          name: 'show_archived',
+          in: 'query',
+        },
+        {
+          name: 'limit',
+          in: 'query',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['list_configuration:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'getv2objectsviews',
+    {
+      name: 'getv2objectsviews',
+      description:
+        'Lists saved views for an object. Results are ordered by view ID (`id.view_id` ascending).\n\nRequired scopes: `object_configuration:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          object: {
+            type: 'string',
+            description: 'A UUID or slug to identify the object.',
+          },
+          show_archived: {
+            type: 'boolean',
+            description:
+              '`true` to include archived views. See our [archiving guide](/docs/archiving-vs-deleting) for more information on archiving.',
+            default: false,
+          },
+          limit: {
+            type: 'integer',
+            minimum: 1,
+            maximum: 1000,
+            default: 500,
+            description:
+              'The maximum number of views to return. Must be between 1 and 1000. Defaults to 500.',
+          },
+          cursor: {
+            type: 'string',
+            description:
+              "A pagination cursor from a previous response's `pagination.next_cursor`. Omit for the first page.",
+          },
+        },
+        required: ['object'],
+      },
+      method: 'get',
+      pathTemplate: '/v2/objects/{object}/views',
+      executionParameters: [
+        {
+          name: 'object',
+          in: 'path',
+        },
+        {
+          name: 'show_archived',
+          in: 'query',
+        },
+        {
+          name: 'limit',
+          in: 'query',
+        },
+        {
+          name: 'cursor',
+          in: 'query',
+        },
+      ],
+      securityRequirements: [
+        {
+          oauth2: ['object_configuration:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'postv2objectsrecordssearch',
+    {
+      name: 'postv2objectsrecordssearch',
+      description:
+        'The search records endpoint provides a convenient way to fuzzy search for records across one or more objects.\nThe matching strategy employed in this endpoint follows the in-product strategy and will match names, domains, emails, phone numbers and social handles on people and companies, and labels on all other objects.\nPlease note, results returned from this endpoint are eventually consistent. For results which are guaranteed to be up to date, please use the record query endpoint instead.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `record_permission:read`, `object_configuration:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          requestBody: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                maxLength: 256,
+                description:
+                  'Query string to search for. An empty string returns a default set of results.',
+              },
+              limit: {
+                type: 'number',
+                minimum: 1,
+                maximum: 25,
+                default: 25,
+                description: 'The maximum number of results to return. Defaults to 25.',
+              },
+              objects: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  description: 'The object slug or UUID that you would like to filter by.',
+                },
+                minItems: 1,
+                description:
+                  'Specifies which objects to filter results by. At least one object must be specified. Accepts object slugs or IDs.',
+              },
+              request_as: {
+                anyOf: [
+                  {
+                    type: 'object',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['workspace'],
+                      },
+                    },
+                    required: ['type'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['workspace-member'],
+                      },
+                      workspace_member_id: {
+                        type: 'string',
+                        format: 'uuid',
+                      },
+                    },
+                    required: ['type', 'workspace_member_id'],
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        enum: ['workspace-member'],
+                      },
+                      email_address: {
+                        type: 'string',
+                        format: 'email',
+                      },
+                    },
+                    required: ['type', 'email_address'],
+                  },
+                ],
+                description:
+                  "Specifies the context in which to perform the search. Use 'workspace' to return all search results or specify a workspace member to limit results to what one specific person in your workspace can see.",
+              },
+            },
+            required: ['query', 'objects', 'request_as'],
+            description: 'The JSON request body.',
+          },
+        },
+        required: ['requestBody'],
+      },
+      method: 'post',
+      pathTemplate: '/v2/objects/records/search',
+      executionParameters: [],
+      requestBodyContentType: 'application/json',
+      securityRequirements: [
+        {
+          oauth2: ['record_permission:read', 'object_configuration:read'],
+        },
+      ],
+    },
+  ],
+  [
+    'postv2sql',
+    {
+      name: 'postv2sql',
+      description:
+        'Query records and lists with SQL.\n\nThis endpoint is in beta. We will aim to avoid breaking changes, but small updates may be made as we roll out to more users.\n\nRequired scopes: `record_permission:read`, `object_configuration:read`.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          requestBody: {
+            type: 'object',
+            properties: {
+              sql: {
+                type: 'string',
+                description: 'The SQL query to be executed.',
+              },
+            },
+            required: ['sql'],
+            description: 'The JSON request body.',
+          },
+        },
+        required: ['requestBody'],
+      },
+      method: 'post',
+      pathTemplate: '/v2/sql',
+      executionParameters: [],
+      requestBodyContentType: 'application/json',
+      securityRequirements: [
+        {
+          oauth2: ['record_permission:read', 'object_configuration:read'],
+        },
+      ],
+    },
+  ],
 ]);
 
 /**
@@ -6628,26 +7806,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       inputSchema: def.inputSchema,
     };
   });
-  
+
   // Sort tools by method order within categories
   toolsForClient.sort((a, b) => {
     // Extract category from description
     const categoryA = a.description?.match(/^\[([^\]]+)\]/)?.[1] || 'Other';
     const categoryB = b.description?.match(/^\[([^\]]+)\]/)?.[1] || 'Other';
-    
+
     // First sort by category
     if (categoryA !== categoryB) {
       return categoryA.localeCompare(categoryB);
     }
-    
+
     // Within the same category, sort by method order
     const methodA = a.name.split('_')[0];
     const methodB = b.name.split('_')[0];
-    
+
     const methodOrder = ['list', 'get', 'create', 'update', 'delete', 'query'];
     const orderA = methodOrder.indexOf(methodA);
     const orderB = methodOrder.indexOf(methodB);
-    
+
     if (orderA !== -1 && orderB !== -1) {
       if (orderA !== orderB) {
         return orderA - orderB;
@@ -6657,10 +7835,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     } else if (orderB !== -1) {
       return 1;
     }
-    
+
     return a.name.localeCompare(b.name);
   });
-  
+
   return { tools: toolsForClient };
 });
 

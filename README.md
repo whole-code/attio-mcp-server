@@ -104,23 +104,35 @@ Or use the install scripts: `./install-claude.sh` or `./install-cursor.sh`
 The MCP server exposes all Attio API endpoints as tools with human-readable names, organized by category:
 
 ### Core Data Management
-- **Objects**: `list_objects`, `create_object`, `get_object`, `update_object`
-- **Records**: `list_records`, `create_record`, `query_records`, `delete_record`
+- **Objects**: `list_objects`, `create_object`, `get_object`, `update_object`, `list_object_views`
+- **Records**: `list_records`, `create_record`, `query_records`, `search_records`, `delete_record`
+  - Update variants: `update_record` (PATCH — appends multiselect values), `overwrite_record` (PUT — overwrites multiselect values), `assert_record` (create-or-update via matching attribute)
 - **Attributes**: `list_attributes`, `create_attribute`, `update_attribute_status`
 
 ### Lists & Entries
-- **Lists**: `list_lists`, `create_list`, `update_list`
-- **List Entries**: `create_list_entry`, `query_list_entries`, `update_list_entry`
+- **Lists**: `list_lists`, `create_list`, `update_list`, `list_list_views`
+- **List Entries**: `create_list_entry`, `query_list_entries`
+  - Update variants: `update_list_entry` (PATCH — appends multiselect values), `overwrite_list_entry` (PUT — overwrites multiselect values), `assert_list_entry` (create-or-update by parent record)
+
+### Meetings & Calls
+- **Meetings**: `list_meetings`, `get_meeting`, `create_meeting`
+- **Call Recordings**: `list_call_recordings`, `get_call_recording`, `create_call_recording`, `delete_call_recording`, `get_call_transcript`
 
 ### Collaboration
 - **Tasks**: `list_tasks`, `create_task`, `update_task`, `delete_task`
 - **Notes**: `list_notes`, `create_note`, `get_note`, `delete_note`
 - **Comments**: `create_comment`, `get_comment`, `list_comment_threads`
+- **Files**: `list_files`, `get_file`, `create_file`, `download_file`, `delete_file`
 
 ### Administration
 - **Workspace**: `list_workspace_members`, `get_workspace_member`
 - **Webhooks**: `list_webhooks`, `create_webhook`, `update_webhook`
 - **Authentication**: `get_current_user`
+- **Reporting**: `query_sql` (query records and lists with SQL, beta)
+
+> Every tool name is unique. Earlier versions exposed the three record/list-entry
+> update variants under a single name, which broke MCP clients that reject
+> duplicate tool names (e.g. n8n's MCP Server Trigger).
 
 ## Manual Testing
 
